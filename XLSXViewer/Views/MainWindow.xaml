@@ -1,0 +1,107 @@
+﻿<Window x:Class="XLSXViewer.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:XLSXViewer.ViewModels"
+        mc:Ignorable="d"
+        Title="{Binding Title}" MinHeight="650" MinWidth="800">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Height" Value="35" />
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Margin" Value="10" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="0.8*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="0.2*" />
+        </Grid.RowDefinitions>
+        <ListBox Grid.Column="0" ItemsSource="{Binding ThreatsOnPage}" 
+                 SelectedItem="{Binding SelectedThreat}" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="5">
+                        <TextBlock FontSize="18" Text="{Binding Path=Id}" />
+                        <TextBlock Text="{Binding Path=Name}" TextWrapping="Wrap" MaxWidth="500" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Content="|&lt;" Command="{Binding FirstPageCommand}"/>
+            <Button Content="&lt;&lt;" Command="{Binding PreviousPageCommand}"/>
+            <TextBlock  Text="{Binding PaginationView}" FontSize="24" TextAlignment="Center"/>
+            <Button Content="&gt;&gt;" Command="{Binding NextPageCommand}"/>
+            <Button Content="&gt;|" Command="{Binding LastPageCommand}"/>
+            <ComboBox Width="60" Height="35" ItemsSource="{Binding PaggingCounts}" SelectedValue="{Binding ItemsOnPage}"/>
+        </StackPanel>
+        
+        <StackPanel Name="New" Grid.Column="1" Orientation="Vertical">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Идентификатор угрозы:" FontWeight="Bold" Width="200"/>
+                <Button Width="50" Height="25" Content="Стало" IsEnabled="False"/>
+                <Button Width="50" Height="25" Content="Было" Click="OldButton_Click" IsEnabled="{Binding IsOldYet}"/>
+            </StackPanel>
+            <StackPanel DataContext="{Binding SelectedThreat}">
+                <TextBlock Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="Наименование угрозы:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"/>
+                <TextBlock Text="Источник угрозы:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Source, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"/>
+                <TextBlock Text="Объект воздействия угрозы" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Object, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"/>
+                <TextBlock Text="Нарушение конфиденциалоности:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Privacy, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="Нарушение целостности:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Integrity, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="Нарушение доступности:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Availabilty, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Visibility="Collapsed" Name="Description"/>
+                <Button Content="Описание" Width="200" Click="DescriptionButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Name="Old" Grid.Column="1" Visibility="Collapsed" Orientation="Vertical">
+            <StackPanel Orientation="Horizontal" DataContext="{Binding IsOldYet}">
+                <TextBlock Text="Идентификатор угрозы:" FontWeight="Bold" Width="200"/>
+                <Button Width="50" Height="25" Content="Стало" Click="NewButton_Click" IsEnabled="{Binding IsOldYet}"/>
+                <Button Width="50" Height="25" Content="Было" IsEnabled="False"/>
+            </StackPanel>
+            <StackPanel DataContext="{Binding SelectedOldThreat}">
+                <TextBlock Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="Наименование угрозы:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"/>
+                <TextBlock Text="Источник угрозы:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Source, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"/>
+                <TextBlock Text="Объект воздействия угрозы" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Object, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"/>
+                <TextBlock Text="Нарушение конфиденциалоности:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Privacy, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="Нарушение целостности:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Integrity, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="Нарушение доступности:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Availabilty, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Visibility="Collapsed" Name="DescriptionOld"/>
+                <Button Content="Описание" Width="200" Click="DescriptionOldButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal">
+            <Button Content="На главную" Command="{Binding OnMainCommand}" Width="100" IsEnabled="{Binding IsOldYet}"/>
+            <Button Content="Загрузить/Обновить" Width="200" Click="LoaderButton_Click" IsEnabled="{Binding IsOldYetReversed}"/>
+        </StackPanel>
+    </Grid>
+</Window>
