@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.PlatformUI;
 using System;
 using System.ComponentModel;
+using System.IO;
 using System.Net;
 using System.Windows.Input;
 
@@ -12,19 +13,19 @@ namespace XLSXViewer.ViewModels
         private int currentProgress;
         private string progressVisibility = "Нажмите 'Загрузить' для начала загрузки файла";
         private bool isNotLoaded = true;
-        private static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+        private readonly  WebClient client = new WebClient();
 
-        public static bool isLoaded;
+        public static bool IsLoaded;
         public LoaderViewModel()
         {
-            isLoaded = false;
-            InstigateWorkCommand =
-                    new DelegateCommand(o => worker.RunWorkerAsync(),
-                                        o => !worker.IsBusy);
+            IsLoaded = false;
 
-            worker = new BackgroundWorker();
+            worker = new BackgroundWorker {WorkerReportsProgress = true};
             worker.DoWork += DoWork;
-            worker.ProgressChanged += ProgressChanged;
+            InstigateWorkCommand =
+                new DelegateCommand(o => worker.RunWorkerAsync(),
+                    o => !worker.IsBusy);
         }
 
         public ICommand InstigateWorkCommand { get; }
@@ -59,11 +60,9 @@ namespace XLSXViewer.ViewModels
             get => progressVisibility;
             set
             {
-                if (progressVisibility != value)
-                {
-                    progressVisibility = value;
-                    OnPropertyChanged(nameof(ProgressVisibility));
-                }
+                if (progressVisibility == value) return;
+                progressVisibility = value;
+                OnPropertyChanged(nameof(ProgressVisibility));
             }
         }
 
@@ -71,20 +70,20 @@ namespace XLSXViewer.ViewModels
         {
             try
             {
-                var client = new WebClient();
                 client.DownloadProgressChanged += ProgressChanged;
-                client.DownloadFileCompleted += new AsyncCompletedEventHandler(DownloadCompleted);
+                client.DownloadFileCompleted += DownloadCompleted;
                 client.DownloadFileAsync(new Uri(Url), Source);
             }
             catch (WebException ex)
             {
+                client.CancelAsync();
                 ProgressVisibility =  "Ошибка сети, проверьте подключение";
-                logger.Fatal(ex, "Отсутствовало подключение к сети");
+                Logger.Fatal(ex, "Отсутствовало подключение к сети");
             }
             catch (ArgumentNullException ex)
             {
                 ProgressVisibility = "Ошибка: Путь к файлу оказался Null";
-                logger.Error(ex, "Путь для сохранения файла оказался Null");
+                Logger.Error(ex, "Путь для сохранения файла оказался Null");
             } 
         }
 
@@ -92,23 +91,27 @@ namespace XLSXViewer.ViewModels
         {
             var s = (DownloadProgressChangedEventArgs)e;
             CurrentProgress = e.ProgressPercentage;
-            ProgressVisibility = new string(' ', 2) +s.BytesReceived + @"/" + s.TotalBytesToReceive + " байт";
+            ProgressVisibility = new string(' ', 2) + s.BytesReceived + @"/" + s.TotalBytesToReceive + " байт";
         }
         
         private void DownloadCompleted(object sender, AsyncCompletedEventArgs e)
         {
-            if (currentProgress > 0)
+            if (currentProgress > 0 && !client.IsBusy)
             {
-                isLoaded = true;
-                IsNotLoaded = !isLoaded;
+                IsLoaded = true;
+                IsNotLoaded = !IsLoaded;
                 ProgressVisibility += $"\nЗагрузка завершена. Файл загружен в: {Source}";
                 Tools.FileFinder.FileSource = Source;
             }
             else
             {
-                isLoaded = false;
+                client.CancelAsync();
+
+                IsLoaded = false;
                 ProgressVisibility = "Ошибка сети, проверьте подключение";
-                logger.Fatal("Отсутствовало подключение к сети");
+                Logger.Fatal("Отсутствовало подключение к сети");
+                var file = new FileInfo(Source);
+                if (file.Exists) file.Delete();
             }
         }
     }

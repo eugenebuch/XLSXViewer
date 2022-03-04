@@ -10,28 +10,26 @@ namespace UnitTests
     [TestFixture]
     public class Tests
     {
-        private string url = @"https://bdu.fstec.ru/files/documents/thrlist.xlsx";
-        private string savePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\Test.xlsx";
+        private const string Url = @"https://bdu.fstec.ru/files/documents/thrlist.xlsx";
+        private readonly string savePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\Test.xlsx";
 
         [SetUp]
         public void Setup()
         {
             var client = new WebClient();
-            client.DownloadFile(new Uri(url), savePath);
+            client.DownloadFile(new Uri(Url), savePath);
         }
 
         [Test]
         public void ExcelReader_ParseToThreat_ThreatOnReturn()
         {
             //arrange
-            var expect = true;
-            bool result;
 
             //act
-            result = ExcelReader.Read(savePath).ToList()[0].Id != null;
+            var result = ExcelReader.Read(savePath).ToList()[0].Id != null;
 
             //assert
-            Assert.AreEqual(expect, result);
+            Assert.AreEqual(true, result);
         }
 
         [TearDown]

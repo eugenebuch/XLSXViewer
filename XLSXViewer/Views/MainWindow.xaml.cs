@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 
 namespace XLSXViewer.Views
 {
@@ -24,26 +25,38 @@ namespace XLSXViewer.Views
 
         private void LoaderButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Tools.FileFinder.FileSource == null || ViewModels.LoaderViewModel.isLoaded || willRefresh)
+            if (Tools.FileFinder.FileSource == null || ViewModels.LoaderViewModel.IsLoaded || willRefresh)
             {
                 while ((bool)new LoaderWindow().ShowDialog()) { }
             }
             else
             {
                 var answer = MessageBox.Show("Файл найден. Открыть?", "Файл найден", MessageBoxButton.YesNoCancel);
-                if (answer == MessageBoxResult.Yes)
+                switch (answer)
                 {
-                    willRefresh = true;
-                    ViewModels.LoaderViewModel.Source = Tools.FileFinder.FileSource;
-                    ViewModels.LoaderViewModel.isLoaded = true;
-                }
-                else if (answer == MessageBoxResult.No)
-                {
-                    while ((bool)new LoaderWindow().ShowDialog()) { }
+                    case MessageBoxResult.Yes:
+                        willRefresh = true;
+                        ViewModels.LoaderViewModel.Source = Tools.FileFinder.FileSource;
+                        ViewModels.LoaderViewModel.IsLoaded = true;
+                        break;
+                    case MessageBoxResult.No:
+                    {
+                        while ((bool)new LoaderWindow().ShowDialog()) { }
+
+                        break;
+                    }
+                    case MessageBoxResult.None:
+                        break;
+                    case MessageBoxResult.OK:
+                        break;
+                    case MessageBoxResult.Cancel:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
 
-            if (ViewModels.LoaderViewModel.isLoaded == true)
+            if (ViewModels.LoaderViewModel.IsLoaded)
             {
                 DataContext = new ViewModels.AppViewModel(true);
             }

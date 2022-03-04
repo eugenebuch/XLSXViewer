@@ -15,22 +15,22 @@ namespace XLSXViewer.ViewModels
         /// <summary>
         /// VM instantiation
         /// </summary>
-        private bool isOldYet = false;
+        private bool isOldYet;
         private bool isOldYetReversed;
         private Threat selectedThreat;
         private Threat selectedOldThreat;
         private ObservableCollection<Threat> threatsOnPage;
-        private ObservableCollection<Threat> oldThreats;
+        private readonly ObservableCollection<Threat> oldThreats;
         private int itemsOnPage;
         private int currentPage = 1;
         private int lastPage;
-        private bool flag;
+        private readonly bool flag;
         private string paginationView = "";
-        private ICommand _nextPageCommand;
-        private ICommand _previousPageCommand;
-        private ICommand _firsPageCommand;
-        private ICommand _lastPageCommand;
-        private ObservableCollection<Threat> difference;
+        private ICommand nextPageCommand;
+        private ICommand previousPageCommand;
+        private ICommand firsPageCommand;
+        private ICommand lastPageCommand;
+        private readonly ObservableCollection<Threat> difference;
         private string title = "Просмотр угроз";
         private string fileSource;
 
@@ -48,20 +48,18 @@ namespace XLSXViewer.ViewModels
             difference = new ObservableCollection<Threat>();
             ThreatsOnPage = new ObservableCollection<Threat>();
 
-            if (LoaderViewModel.isLoaded)
+            if (!LoaderViewModel.IsLoaded) return;
+            this.flag = flag;
+            worker = new BackgroundWorker();
+            worker.DoWork += WorkWithData;
+            worker.RunWorkerAsync();
+
+
+            OnMainCommand = new DelegateCommand(param =>
             {
-                this.flag = flag;
-                worker = new BackgroundWorker();
-                worker.DoWork += WorkWithData;
-                worker.RunWorkerAsync();
-
-
-                OnMainCommand = new DelegateCommand(param =>
-                {
-                    IsOldYet = false;
-                    RefreshDataOnPage();
-                });
-            }
+                IsOldYet = false;
+                RefreshDataOnPage();
+            });
         }
 
         /// <summary>
@@ -76,8 +74,7 @@ namespace XLSXViewer.ViewModels
             {
                 if (isOldYet)
                 {
-                    if (value == null) { SelectedOldThreat = null; }
-                    else { SelectedOldThreat = oldThreats.FirstOrDefault(x => x.Id == value.Id); }
+                    SelectedOldThreat = value == null ? null : oldThreats.FirstOrDefault(x => x.Id == value.Id);
                 }
 
                 selectedThreat = value;
@@ -90,19 +87,12 @@ namespace XLSXViewer.ViewModels
             get => selectedOldThreat;
             set
             {
-                if (value != null)
-                {
-                    selectedOldThreat = value;
-                }
-                else
-                {
-                    selectedOldThreat = new Threat() { Id = "*НОВАЯ УГРОЗА*" };
-                }
+                selectedOldThreat = value ?? new Threat() { Id = "*НОВАЯ УГРОЗА*" };
                 OnPropertyChanged(nameof(SelectedOldThreat));
             }
         }
 
-        public static ObservableCollection<Threat> Threats { get; set; }
+        private static ObservableCollection<Threat> Threats { get; set; }
 
         public bool IsOldYet
         {
@@ -118,16 +108,14 @@ namespace XLSXViewer.ViewModels
             }
         }
 
-        public bool IsOldYetReversed
+        private bool IsOldYetReversed
         {
             get => isOldYetReversed;
             set
             {
-                if (isOldYetReversed != value)
-                {
-                    isOldYetReversed = value;
-                    OnPropertyChanged(nameof(isOldYetReversed));
-                }
+                if (isOldYetReversed == value) return;
+                isOldYetReversed = value;
+                OnPropertyChanged(nameof(isOldYetReversed));
             }
         }
 
@@ -136,11 +124,9 @@ namespace XLSXViewer.ViewModels
             get => threatsOnPage;
             set
             {
-                if (threatsOnPage != value)
-                {
-                    threatsOnPage = value;
-                    OnPropertyChanged(nameof(ThreatsOnPage));
-                }
+                if (threatsOnPage == value) return;
+                threatsOnPage = value;
+                OnPropertyChanged(nameof(ThreatsOnPage));
             }
         }
 
@@ -149,11 +135,9 @@ namespace XLSXViewer.ViewModels
             get => title;
             set
             {
-                if (title!= value)
-                {
-                    title = value;
-                    OnPropertyChanged(nameof(Title));
-                }
+                if (title == value) return;
+                title = value;
+                OnPropertyChanged(nameof(Title));
             }
         }
 
@@ -162,28 +146,24 @@ namespace XLSXViewer.ViewModels
             get => paginationView;
             set
             {
-                if (paginationView != value)
-                {
-                    paginationView = value;
-                    OnPropertyChanged(nameof(PaginationView));
-                }
+                if (paginationView == value) return;
+                paginationView = value;
+                OnPropertyChanged(nameof(PaginationView));
             }
         }
 
-        public List<int> PaggingCounts { get; } = new List<int>() { 15, 30, 50, 100 };
+        private List<int> PaggingCounts { get; } = new List<int>() { 15, 30, 50, 100 };
 
         public int ItemsOnPage
         {
             get => itemsOnPage;
             set
             {
-                if (itemsOnPage != value)
-                {
-                    itemsOnPage = value;
-                    OnPropertyChanged(nameof(ItemsOnPage));
-                    currentPage = 1;
-                    RefreshDataOnPage();
-                }
+                if (itemsOnPage == value) return;
+                itemsOnPage = value;
+                OnPropertyChanged(nameof(ItemsOnPage));
+                currentPage = 1;
+                RefreshDataOnPage();
             }
         }
 
@@ -191,45 +171,37 @@ namespace XLSXViewer.ViewModels
         /// Commands
         /// </summary>
 
-        public ICommand NextPageCommand
-        {
-            get => _nextPageCommand = _nextPageCommand ?? new DelegateCommand(param =>
-            {
-                currentPage += 1;
-                RefreshDataOnPage();
-            }, 
+        public ICommand NextPageCommand =>
+            nextPageCommand ??= new DelegateCommand(param =>
+                {
+                    currentPage += 1;
+                    RefreshDataOnPage();
+                }, 
                 CanExecuteNextPage);
-        }
 
-        public ICommand PreviousPageCommand
-        {
-            get => _previousPageCommand = _previousPageCommand ?? new DelegateCommand(param =>
-            {
-                currentPage -= 1;
-                RefreshDataOnPage();
-            },
+        public ICommand PreviousPageCommand =>
+            previousPageCommand ??= new DelegateCommand(param =>
+                {
+                    currentPage -= 1;
+                    RefreshDataOnPage();
+                },
                 CanExecutePreviousPage);
-        }
 
-        public ICommand FirstPageCommand
-        {
-            get => _firsPageCommand = _firsPageCommand ?? new DelegateCommand(param =>
-            {
-                currentPage = 1;
-                RefreshDataOnPage();
-            },
+        public ICommand FirstPageCommand =>
+            firsPageCommand ??= new DelegateCommand(param =>
+                {
+                    currentPage = 1;
+                    RefreshDataOnPage();
+                },
                 CanExecutePreviousPage);
-        }
 
-        public ICommand LastPageCommand
-        {
-            get => _lastPageCommand = _lastPageCommand ?? new DelegateCommand(param =>
-            {
-                currentPage = lastPage;
-                RefreshDataOnPage();
-            },
+        public ICommand LastPageCommand =>
+            lastPageCommand ??= new DelegateCommand(param =>
+                {
+                    currentPage = lastPage;
+                    RefreshDataOnPage();
+                },
                 CanExecuteNextPage);
-        }
 
         public ICommand OnMainCommand { get; set; }
         /// <summary>
@@ -239,15 +211,8 @@ namespace XLSXViewer.ViewModels
         {
             title = $"Просмотр угроз - [{fileSource}]";
             if (Threats.Count == 0) { return; }
-            var src = new ObservableCollection<Threat>();
-            if (IsOldYet)
-            {
-                src = difference;
-            }
-            else
-            {
-                src = Threats;
-            }
+
+            var src = IsOldYet ? difference : Threats;
 
             lastPage = src.Count % itemsOnPage > 0 ? src.Count / itemsOnPage + 1 : src.Count / itemsOnPage;
             PaginationView = $"{currentPage}/{lastPage}";
